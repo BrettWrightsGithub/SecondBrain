@@ -1,0 +1,32 @@
+{
+  "name": "second-brain",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "npm run dev:frontend",
+    "dev:frontend": "npm run dev -w frontend",
+    "dev:backend": "npm run dev -w backend",
+    "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "npm run build -w frontend",
+    "build:backend": "npm run build -w backend",
+    "start": "npm run start:frontend",
+    "start:frontend": "npm run start -w frontend",
+    "start:backend": "npm run start -w backend",
+    "start:all": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:frontend": "npm run lint -w frontend",
+    "lint:backend": "npm run lint -w backend",
+    "ollama:start": "./scripts/ollama.sh start",
+    "ollama:stop": "./scripts/ollama.sh stop",
+    "ollama:restart": "./scripts/ollama.sh restart",
+    "ollama:status": "./scripts/ollama.sh status"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

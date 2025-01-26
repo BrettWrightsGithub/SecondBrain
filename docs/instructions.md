@@ -13,7 +13,7 @@ These instructions guide the WindSurf AI IDE through the development, testing, a
    - Node.js (>= 18.17.0)
    - Python (>= 3.8)
    - n8n.io (CLI setup)
-   - Firebase CLI (if using Firebase for storage)
+   - supabase
 
 3. Ensure API keys for Google Drive, Pinecone, and other integrations are available.
 
@@ -108,5 +108,45 @@ These instructions guide the WindSurf AI IDE through the development, testing, a
 - Validate the results using sample data and user input scenarios.
 
 ---
+Documentation URLs for techstack
 
-Feel free to adapt this further based on specific feedback or additional requirements.
+| **Category**             | **Component/Function**        | **Documentation URL**                                                                                 |
+|--------------------------|-------------------------------|--------------------------------------------------------------------------------------------------------|
+| **Languages**            | Node.js                       | [Node.js Documentation](https://nodejs.org/en/docs/)                                                  |
+|                          | Python                        | [Python Documentation](https://docs.python.org/3/)                                                    |
+| **Frontend Frameworks**  | Next.js                       | [Next.js Documentation](https://nextjs.org/docs)                                                      |
+|                          | React                         | [React Documentation](https://react.dev/)                                                             |
+|                          | TailwindCSS                   | [Tailwind CSS Documentation](https://tailwindcss.com/docs)                                            |
+|                          | ShadCN Components             | [ShadCN UI Documentation](https://ui.shadcn.com/docs)                                                 |
+|                          | Zustand                       | [Zustand Documentation](https://docs.pmnd.rs/zustand/getting-started/introduction)                    |
+|                          | TanStack Query                | [TanStack Query Documentation](https://tanstack.com/query/latest/docs/overview)                       |
+|                          | Radix UI                      | [Radix Primitives Documentation](https://www.radix-ui.com/docs/primitives/overview/introduction)      |
+|                          | Lucide React                  | [Lucide React Documentation](https://lucide.dev/docs/lucide-react)                                    |
+| **Backend Frameworks**   | n8n.io                        | [n8n Documentation](https://docs.n8n.io/)                                                             |
+|                          | LangChain                     | [LangChain Python Documentation](https://python.langchain.com/docs/get_started/introduction.html)     |
+|                          | OLLama                        | [OLLama API Documentation](https://ollama.com/docs)                                                   |
+|                          | OpenAI API                    | [OpenAI API Reference](https://platform.openai.com/docs/api-reference)                                |
+|                          | Anthropic API                 | [Anthropic API Documentation](https://docs.anthropic.com/claude/docs)                                 |
+| **Data Storage**         | Chroma                        | [Chroma Documentation](https://docs.trychroma.com/)                                                   |
+|                          | Supabase                      | [Supabase Documentation](https://supabase.com/docs)                                                   |
+|                          | Firebase                      | [Firebase Documentation](https://firebase.google.com/docs)                                            |
+| **File Processing**      | PyTesseract                   | [PyTesseract Documentation](https://pypi.org/project/pytesseract/)                                    |
+|                          | pdfplumber                    | [pdfplumber Documentation](https://github.com/jsvine/pdfplumber)                                      |
+|                          | ClamAV                        | [ClamAV Documentation](https://docs.clamav.net/)                                                      |
+| **Security**             | Docker                        | [Docker Documentation](https://docs.docker.com/)                                                      |
+|                          | LUKS                          | [LUKS On-Disk Format Specification](https://gitlab.com/cryptsetup/cryptsetup/-/wikis/LUKS-standard/on-disk-format.pdf)|
+|                          | FileVault                     | [FileVault Documentation](https://support.apple.com/en-us/HT204837)                                   |
+| **DevOps**               | npm                           | [npm Documentation](https://docs.npmjs.com/)                                                          |
+|                          | Python pip                    | [pip Documentation](https://pip.pypa.io/en/stable/)                                                   |
+| **Key Functions**        | Sensing                       | [Perceptual Control Theory Overview](https://en.wikipedia.org/wiki/Perceptual_control_theory)         |
+|                          | Perception                    | [Perceptual Control Theory Overview](https://en.wikipedia.org/wiki/Perceptual_control_theory)         |
+|                          | Cascading Subsystems          | [4D-RCS Reference Model Architecture](https://en.wikipedia.org/wiki/4D-RCS_Reference_Model_Architecture)|
+|                          | High-Level Reasoning          | [Soar Cognitive Architecture](https://soar.eecs.umich.edu/)                                           |
+|                          | Long-Term Memory              | [Cognitive Dynamic Systems: A Review](https://ieeexplore.ieee.org/document/10125578)                  |
+|                          | Feedback Loops                | [Feedback Systems: An Introduction](https://www.cds.caltech.edu/~murray/books/AM08/pdf/fbs-public_24Jul2020.pdf)|
+|                          | Local LLM Support             | [OLLama API Documentation](https://ollama.com/docs)                                                   |
+|                          | Cloud LLM Providers           | [OpenAI API Reference](https://platform.openai.com/docs/api-reference)                                |
+|                          | Workflow Orchestration        | [n8n Documentation](https://docs.n8n.io/)                                                             |
+|                          | Data Storage & Retrieval      | [Chroma Documentation](https://docs.trychroma.com/)                                                   |
+|                          | Security & Privacy            | [ClamAV Documentation](https://docs.clamav.net/)                                                      |
+|                          | UI & User Experience          | [ShadCN UI Documentation](https://ui.shadcn.com/docs)                                                 |
