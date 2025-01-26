@@ -1,0 +1,11 @@
+{
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/chat/page": "app/chat/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/documents/page": "app/documents/page.js",
+  "/history/page": "app/history/page.js",
+  "/settings/ai-models/page": "app/settings/ai-models/page.js",
+  "/settings/preferences/page": "app/settings/preferences/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/settings/integrations/page": "app/settings/integrations/page.js"
+}
