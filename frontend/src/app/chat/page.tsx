@@ -1,45 +1,37 @@
 'use client';
 
 import { useState } from "react";
+import { Message } from "@/types/chat";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { ChatInput } from "@/components/chat/ChatInput";
-import { CognitionPanel } from "@/components/cognition/CognitionPanel";
-import { MetacognitionSidebar } from "@/components/metacognition/MetacognitionSidebar"; // Import MetacognitionSidebar
-import type { Message } from "@/types/chat";
 
-// Mock data for initial development
-const initialMessages = [
+const initialMessages: Message[] = [
   {
     id: "1",
     content: "Hello! How can I help you today?",
-    sender: "system" as const,
+    role: "assistant",
+    sender: "AI Assistant",
     timestamp: new Date(),
-  },
-];
-
-const initialLogs = [
-  {
-    timestamp: new Date(),
-    message: "System initialized",
-    type: "info" as const,
   },
 ];
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [logs, setLogs] = useState(initialLogs);
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleSendMessage = async (content: string) => {
-    // Add user message immediately
+    if (!content.trim() || isProcessing) return;
+
     const userMessage: Message = {
       id: Date.now().toString(),
       content,
-      sender: "user",
+      role: "user",
+      sender: "You",
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, userMessage]);
-    setIsStreaming(true);
+
+    setMessages(prev => [...prev, userMessage]);
+    setIsProcessing(true);
 
     try {
       const response = await fetch('/api/chat', {
@@ -47,11 +39,13 @@ export default function ChatPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: content }),
+        body: JSON.stringify({
+          message: content,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get response');
+        throw new Error('Failed to send message');
       }
 
       if (!response.body) {
@@ -79,7 +73,8 @@ export default function ChatPage() {
               setMessages(prev => [...prev, {
                 id: systemMessageId,
                 content: data.content,
-                sender: 'system',
+                role: 'assistant',
+                sender: 'AI Assistant',
                 timestamp: new Date(data.timestamp)
               }]);
               continue;
@@ -113,63 +108,21 @@ export default function ChatPage() {
       const errorMessage: Message = {
         id: Date.now().toString(),
         content: "Sorry, I encountered an error. Please try again.",
-        sender: "system",
+        role: "system",
+        sender: "System",
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, errorMessage]);
-      // Add error log
-      setLogs((prev) => [...prev, {
-        timestamp: new Date(),
-        message: error instanceof Error ? error.message : 'Unknown error',
-        type: 'error' as const,
-      }]);
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
-      setIsStreaming(false);
+      setIsProcessing(false);
     }
   };
 
-  const handleFileUpload = (files: FileList) => {
-    // TODO: Implement file upload with ClamAV scanning
-    Array.from(files).forEach(file => {
-      console.log("File to be uploaded:", file.name);
-      // Add a message about the uploaded file
-      const message: Message = {
-        id: Date.now().toString(),
-        content: `📄 Uploaded document: **${file.name}**\n\nProcessing...`,
-        sender: "system",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, message]);
-    });
-  };
-
   return (
-    <div className="flex h-screen">
-      {/* Main chat container */}
+    <div className="flex h-[calc(100vh-4rem)]">
       <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="py-4 border-b flex justify-between items-center px-8">
-          <h1 className="text-2xl font-bold">Your Second Brain</h1>
-        </header>
-
-        {/* Main chat area with max width and center alignment */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-8 h-full">
-            <ChatWindow messages={messages} isStreaming={isStreaming} />
-          </div>
-        </div>
-
-        {/* Input area with max width and center alignment */}
-        <div className="px-8 pb-6">
-          <div className="max-w-4xl mx-auto">
-            <ChatInput onSendMessage={handleSendMessage} />
-          </div>
-        </div>
-      </div>
-
-      {/* Metacognition Panel */}
-      <div className="flex-shrink-0">
-        <MetacognitionSidebar />
+        <ChatWindow messages={messages} isStreaming={isProcessing} />
+        <ChatInput onSendMessage={handleSendMessage} disabled={isProcessing} />
       </div>
     </div>
   );

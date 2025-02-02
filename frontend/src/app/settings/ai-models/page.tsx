@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { useSettings } from "@/lib/stores/settings";
 import type { ChatModelType, EmbeddingModelType, ModelProvider } from "@/lib/stores/settings";
-import { OllamaSetup } from "./ollama-setup";
+import OllamaSetup from "./ollama-setup";
 import { chatModels, embeddingModels } from "./models";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -85,7 +85,7 @@ export default function AIModelsPage() {
                     placeholder="http://localhost:11434"
                     value={aiModels.provider.baseUrl || ''}
                     onChange={(e) => updateAIModels({ 
-                      provider: { baseUrl: e.target.value } 
+                      provider: { ...aiModels.provider, baseUrl: e.target.value } 
                     })}
                   />
                   <p className="text-sm text-neutral-500">URL where Ollama is running</p>
@@ -100,7 +100,7 @@ export default function AIModelsPage() {
                     placeholder="Enter your API key"
                     value={aiModels.provider.apiKey || ''}
                     onChange={(e) => updateAIModels({ 
-                      provider: { apiKey: e.target.value } 
+                      provider: { ...aiModels.provider, apiKey: e.target.value } 
                     })}
                   />
                   <p className="text-sm text-neutral-500">

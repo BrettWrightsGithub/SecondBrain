@@ -27,6 +27,7 @@
     "ollama:status": "./scripts/ollama.sh status"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
     "concurrently": "^8.2.2"
   }
 }

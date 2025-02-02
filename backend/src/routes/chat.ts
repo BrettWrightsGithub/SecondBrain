@@ -1,56 +1,80 @@
-import { Router } from 'express';
-import { z } from 'zod';
-import { AppError } from '../middleware/error';
+import express from 'express';
 import { ChatService } from '../services/chat';
+import { Message, ModelConfig } from '../types';
+import { AppError } from '../middleware/error';
 
-const router = Router();
-const chatService = new ChatService();
+const router = express.Router();
 
-const messageSchema = z.object({
-  content: z.string().min(1),
-  role: z.enum(['user', 'assistant', 'system']),
+const chatService = new ChatService({
+  model: process.env.DEFAULT_MODEL || 'gpt-3.5-turbo',
+  provider: 'openai',
+  apiKey: process.env.OPENAI_API_KEY,
+  temperature: 0.7,
 });
 
-const chatRequestSchema = z.object({
-  messages: z.array(messageSchema),
-  modelConfig: z.object({
-    provider: z.object({
-      type: z.enum(['openai', 'anthropic', 'ollama']),
-      apiKey: z.string().optional(),
-      baseUrl: z.string().optional(),
-    }),
-    model: z.string(),
-    temperature: z.number().min(0).max(2),
-    maxTokens: z.number().positive(),
-    streamResponses: z.boolean(),
-  }),
-});
-
-router.post('/', async (req, res, next) => {
+router.post('/stream', async (req, res) => {
   try {
-    const { messages, modelConfig } = chatRequestSchema.parse(req.body);
-    
-    if (modelConfig.streamResponses) {
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
+    const { messages, modelConfig } = req.body;
 
-      await chatService.streamChat(messages, modelConfig, (chunk) => {
-        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-      });
-
-      res.end();
-    } else {
-      const response = await chatService.chat(messages, modelConfig);
-      res.json(response);
+    if (!Array.isArray(messages)) {
+      throw new AppError(400, 'Messages must be an array');
     }
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const chatConfig = {
+      model: modelConfig.model,
+      provider: modelConfig.provider.type,
+      apiKey: modelConfig.provider.apiKey,
+      temperature: modelConfig.temperature,
+      maxTokens: modelConfig.maxTokens,
+    };
+
+    await chatService.streamChat(
+      messages,
+      chatConfig,
+      (chunk) => {
+        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+      }
+    );
+
+    res.end();
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      next(new AppError(400, 'Invalid request data'));
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
     } else {
-      next(error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 });
 
-export { router as chatRouter };
+router.post('/', async (req, res) => {
+  try {
+    const { messages, modelConfig } = req.body;
+
+    if (!Array.isArray(messages)) {
+      throw new AppError(400, 'Messages must be an array');
+    }
+
+    const chatConfig = {
+      model: modelConfig.model,
+      provider: modelConfig.provider.type,
+      apiKey: modelConfig.provider.apiKey,
+      temperature: modelConfig.temperature,
+      maxTokens: modelConfig.maxTokens,
+    };
+
+    const response = await chatService.chat(messages);
+    res.json({ response });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+});
+
+export default router;

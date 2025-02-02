@@ -2,12 +2,10 @@
 
 import React, { useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Message } from "@/types/chat";
-import type { CodeProps } from "react-markdown/lib/ast-to-react";
 
 interface ChatWindowProps {
   messages: Message[];
@@ -21,8 +19,8 @@ export function ChatWindow({ messages, isStreaming }: ChatWindowProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const components: Components = {
-    code({ inline, className, children, ...props }: CodeProps) {
+  const components = {
+    code({ inline, className, children, ...props }: any) {
       const match = /language-(\w+)/.exec(className || "");
       return (
         <code
@@ -39,7 +37,7 @@ export function ChatWindow({ messages, isStreaming }: ChatWindowProps) {
   };
 
   return (
-    <div className="flex flex-col h-full py-6 gap-6">
+    <div className="flex flex-col h-full overflow-y-auto py-6 gap-6 px-4">
       {messages.map((message, index) => (
         <div
           key={index}
@@ -49,18 +47,19 @@ export function ChatWindow({ messages, isStreaming }: ChatWindowProps) {
           )}
         >
           {message.role === "assistant" && (
-            <Avatar>
-              <AvatarImage src="/assistant-avatar.png" alt="AI" />
-              <AvatarFallback>AI</AvatarFallback>
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                AI
+              </AvatarFallback>
             </Avatar>
           )}
-          
+
           <div
             className={cn(
               "rounded-lg px-4 py-2 max-w-[85%] break-words",
               message.role === "user"
-                ? "bg-blue-500 text-white"
-                : "bg-neutral-100 dark:bg-neutral-800"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted"
             )}
           >
             <ReactMarkdown
@@ -72,9 +71,10 @@ export function ChatWindow({ messages, isStreaming }: ChatWindowProps) {
           </div>
 
           {message.role === "user" && (
-            <Avatar>
-              <AvatarImage src="/user-avatar.png" alt="User" />
-              <AvatarFallback>You</AvatarFallback>
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                You
+              </AvatarFallback>
             </Avatar>
           )}
         </div>

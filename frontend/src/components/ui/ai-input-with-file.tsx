@@ -37,6 +37,7 @@ interface AIInputWithFileProps {
   maxFileSize?: number;
   onSubmit?: (message: string, file?: File) => void;
   className?: string;
+  disabled?: boolean;
 }
 
 export function AIInputWithFile({
@@ -47,7 +48,8 @@ export function AIInputWithFile({
   accept = "image/*",
   maxFileSize = 5,
   onSubmit,
-  className
+  className,
+  disabled
 }: AIInputWithFileProps) {
   const [inputValue, setInputValue] = useState<string>("");
   const { fileName, fileInputRef, handleFileSelect, clearFile, selectedFile } =
@@ -59,7 +61,7 @@ export function AIInputWithFile({
   });
 
   const handleSubmit = () => {
-    if (inputValue.trim() || selectedFile) {
+    if ((inputValue.trim() || selectedFile) && !disabled) {
       onSubmit?.(inputValue, selectedFile);
       setInputValue("");
       adjustHeight(true);
@@ -73,8 +75,12 @@ export function AIInputWithFile({
 
         <div className="relative">
           <div
-            className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 flex items-center justify-center h-7 sm:h-8 w-7 sm:w-8 rounded-lg bg-black/5 dark:bg-white/5 hover:cursor-pointer"
-            onClick={() => fileInputRef.current?.click()}
+            className={cn(
+              "absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 flex items-center justify-center h-7 sm:h-8 w-7 sm:w-8 rounded-lg bg-black/5 dark:bg-white/5",
+              !disabled && "hover:cursor-pointer",
+              disabled && "opacity-50"
+            )}
+            onClick={() => !disabled && fileInputRef.current?.click()}
           >
             <Paperclip className="w-3.5 sm:w-4 h-3.5 sm:h-4 transition-opacity transform scale-x-[-1] rotate-45 dark:text-white" />
           </div>
@@ -85,6 +91,7 @@ export function AIInputWithFile({
             ref={fileInputRef}
             onChange={handleFileSelect}
             accept={accept}
+            disabled={disabled}
           />
 
           <Textarea
@@ -97,7 +104,8 @@ export function AIInputWithFile({
               "text-black dark:text-white text-wrap py-3 sm:py-4",
               "text-sm sm:text-base",
               "max-h-[200px] overflow-y-auto resize-none leading-[1.2] scrollbar-none",
-              `min-h-[${minHeight}px]`
+              `min-h-[${minHeight}px]`,
+              disabled && "opacity-50"
             )}
             ref={textareaRef}
             value={inputValue}
@@ -106,22 +114,27 @@ export function AIInputWithFile({
               adjustHeight();
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (e.key === "Enter" && !e.shiftKey && !disabled) {
                 e.preventDefault();
                 handleSubmit();
               }
             }}
+            disabled={disabled}
           />
 
           <button
             onClick={handleSubmit}
-            className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 rounded-xl bg-black/5 dark:bg-white/5 py-1 px-1"
+            className={cn(
+              "absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 rounded-xl bg-black/5 dark:bg-white/5 py-1 px-1",
+              disabled && "opacity-50"
+            )}
             type="button"
+            disabled={disabled}
           >
             <CornerRightUp
               className={cn(
                 "w-3.5 sm:w-4 h-3.5 sm:h-4 transition-opacity dark:text-white",
-                (inputValue || selectedFile) ? "opacity-100" : "opacity-30"
+                (inputValue || selectedFile) && !disabled ? "opacity-100" : "opacity-30"
               )}
             />
           </button>

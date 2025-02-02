@@ -3,9 +3,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { errorHandler } from './middleware/error';
-import { chatRouter } from './routes/chat';
-import { documentsRouter } from './routes/documents';
-import { embeddingsRouter } from './routes/embeddings';
+import ollamaRoutes from './routes/ollama.routes';
 
 // Load environment variables
 dotenv.config();
@@ -22,9 +20,7 @@ app.use(cors({
 app.use(express.json());
 
 // Routes
-app.use('/api/chat', chatRouter);
-app.use('/api/documents', documentsRouter);
-app.use('/api/embeddings', embeddingsRouter);
+app.use('/api/ollama', ollamaRoutes);
 
 // Error handling
 app.use(errorHandler);
