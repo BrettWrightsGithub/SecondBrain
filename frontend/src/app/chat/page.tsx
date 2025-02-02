@@ -4,20 +4,36 @@ import { useState } from "react";
 import { Message } from "@/types/chat";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { ChatInput } from "@/components/chat/ChatInput";
-
-const initialMessages: Message[] = [
-  {
-    id: "1",
-    content: "Hello! How can I help you today?",
-    role: "assistant",
-    sender: "AI Assistant",
-    timestamp: new Date(),
-  },
-];
+import { PrivacyToggle } from "@/components/chat/PrivacyToggle";
+import { useSettings } from "@/lib/stores/settings";
+import { useChatStore } from "@/lib/stores/chat";
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { aiModels } = useSettings();
+  const { messages, isPrivate, addMessage, updateLastMessage, setIsPrivate } = useChatStore();
+
+  const getModelConfig = () => {
+    if (aiModels.provider.type === 'ollama') {
+      return {
+        model: aiModels.chatModel,  // Use the selected model directly
+        provider: {
+          type: 'ollama',
+          baseUrl: aiModels.provider.baseUrl || 'http://127.0.0.1:11434'
+        }
+      };
+    } else {
+      // For OpenAI, use the selected model
+      return {
+        model: aiModels.chatModel,
+        provider: {
+          type: 'openai',
+        },
+        temperature: aiModels.temperature,
+        maxTokens: aiModels.maxTokens,
+      };
+    }
+  };
 
   const handleSendMessage = async (content: string) => {
     if (!content.trim() || isProcessing) return;
@@ -30,17 +46,21 @@ export default function ChatPage() {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    addMessage(userMessage);
     setIsProcessing(true);
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: content,
+          messages: [{
+            role: 'user',
+            content: content
+          }],
+          modelConfig: getModelConfig(),
         }),
       });
 
@@ -55,51 +75,49 @@ export default function ChatPage() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let systemMessageId = '';
+      let buffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(line => line.trim());
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        
+        // Keep the last line in the buffer if it's incomplete
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
+
           try {
-            const data = JSON.parse(line);
+            const jsonStr = trimmedLine.slice(6); // Remove 'data: ' prefix
+            const data = JSON.parse(jsonStr);
             
             // Handle the first message
             if (!systemMessageId) {
               systemMessageId = data.id;
-              setMessages(prev => [...prev, {
+              const assistantMessage: Message = {
                 id: systemMessageId,
                 content: data.content,
                 role: 'assistant',
-                sender: 'AI Assistant',
-                timestamp: new Date(data.timestamp)
-              }]);
+                sender: aiModels.provider.type === 'ollama' ? 'AI Assistant (Private)' : 'AI Assistant',
+                timestamp: new Date()
+              };
+              addMessage(assistantMessage);
               continue;
             }
 
             // Update existing message
-            setMessages(prev => {
-              const lastMessage = prev[prev.length - 1];
-              if (lastMessage.id === systemMessageId) {
-                return [
-                  ...prev.slice(0, -1),
-                  {
-                    ...lastMessage,
-                    content: data.content
-                  }
-                ];
-              }
-              return prev;
-            });
+            updateLastMessage(data.content);
 
             if (data.done) {
               systemMessageId = '';
             }
           } catch (e) {
-            console.error('Error parsing stream data:', e);
+            console.error('Error parsing SSE data:', e);
+            console.log('Problematic line:', line);
           }
         }
       }
@@ -107,23 +125,24 @@ export default function ChatPage() {
       console.error('Error:', error);
       const errorMessage: Message = {
         id: Date.now().toString(),
-        content: "Sorry, I encountered an error. Please try again.",
-        role: "system",
-        sender: "System",
+        content: "Sorry, there was an error processing your message.",
+        role: "assistant",
+        sender: aiModels.provider.type === 'ollama' ? 'AI Assistant (Private)' : 'AI Assistant',
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, errorMessage]);
+      addMessage(errorMessage);
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
-      <div className="flex-1 flex flex-col">
-        <ChatWindow messages={messages} isStreaming={isProcessing} />
-        <ChatInput onSendMessage={handleSendMessage} disabled={isProcessing} />
+    <div className="flex flex-col h-screen">
+      <div className="flex justify-end p-4">
+        <PrivacyToggle isPrivate={aiModels.provider.type === 'ollama'} onToggle={() => setIsPrivate(aiModels.provider.type === 'ollama')} />
       </div>
+      <ChatWindow messages={messages} />
+      <ChatInput onSendMessage={handleSendMessage} disabled={isProcessing} />
     </div>
   );
 }
