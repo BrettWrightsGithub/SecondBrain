@@ -47,19 +47,19 @@ export function NavSidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="relative">
+    <div className="fixed left-0 top-0 bottom-0 z-50">
       {/* Desktop Sidebar */}
       <motion.div
-        className="hidden md:flex h-screen flex-col border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900"
+        className="hidden md:flex h-screen flex-col bg-background/50 backdrop-blur-sm"
         animate={{
           width: open ? "240px" : "64px",
         }}
       >
-        <div className="p-4">
+        <div className="p-4 mb-4">
           <MenuButton open={open} setOpen={setOpen} />
         </div>
 
-        <nav className="flex-1 space-y-1 px-2">
+        <nav className="flex flex-col gap-4 px-2">
           {navigation.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -69,13 +69,13 @@ export function NavSidebar() {
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors",
+                  "flex items-center gap-3 px-3 py-3 text-sm rounded-lg transition-all hover:scale-105",
                   isActive
-                    ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
-                    : "text-neutral-600 hover:bg-neutral-50 dark:text-neutral-400 dark:hover:bg-neutral-800/50"
+                    ? "bg-white/90 shadow-lg text-primary dark:bg-neutral-800/90 dark:text-primary-foreground"
+                    : "text-muted-foreground hover:bg-white/90 hover:shadow-lg dark:hover:bg-neutral-800/90 hover:text-primary"
                 )}
               >
-                <Icon className="h-5 w-5 flex-shrink-0" />
+                <Icon className="h-5 w-5 flex-shrink-0 transition-transform" />
                 <motion.span
                   animate={{
                     opacity: open ? 1 : 0,
@@ -91,7 +91,7 @@ export function NavSidebar() {
       </motion.div>
 
       {/* Mobile Sidebar */}
-      <div className="md:hidden">
+      <div className="block md:hidden fixed top-4 left-4 z-50">
         <div className="p-4">
           <MenuButton open={open} setOpen={setOpen} />
         </div>

@@ -14,20 +14,22 @@ export default function ChatPage() {
   const { messages, isPrivate, addMessage, updateLastMessage, setIsPrivate } = useChatStore();
 
   const getModelConfig = () => {
-    if (aiModels.provider.type === 'ollama') {
+    if (isPrivate) {
+      // Private mode uses Ollama
       return {
-        model: aiModels.chatModel,  // Use the selected model directly
+        model: aiModels.ollamaChatModel,
         provider: {
-          type: 'ollama',
-          baseUrl: aiModels.provider.baseUrl || 'http://127.0.0.1:11434'
+          type: 'ollama' as const,
+          baseUrl: process.env.NEXT_PUBLIC_OLLAMA_URL || 'http://127.0.0.1:11434'
         }
       };
     } else {
-      // For OpenAI, use the selected model
+      // Public mode uses OpenAI
       return {
-        model: aiModels.chatModel,
+        model: aiModels.openaiChatModel,
         provider: {
-          type: 'openai',
+          type: 'openai' as const,
+          apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY
         },
         temperature: aiModels.temperature,
         maxTokens: aiModels.maxTokens,
@@ -102,7 +104,7 @@ export default function ChatPage() {
                 id: systemMessageId,
                 content: data.content,
                 role: 'assistant',
-                sender: aiModels.provider.type === 'ollama' ? 'AI Assistant (Private)' : 'AI Assistant',
+                sender: isPrivate ? 'AI Assistant (Private)' : 'AI Assistant',
                 timestamp: new Date()
               };
               addMessage(assistantMessage);
@@ -127,7 +129,7 @@ export default function ChatPage() {
         id: Date.now().toString(),
         content: "Sorry, there was an error processing your message.",
         role: "assistant",
-        sender: aiModels.provider.type === 'ollama' ? 'AI Assistant (Private)' : 'AI Assistant',
+        sender: isPrivate ? 'AI Assistant (Private)' : 'AI Assistant',
         timestamp: new Date(),
       };
       addMessage(errorMessage);
@@ -138,11 +140,15 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-screen">
-      <div className="flex justify-end p-4">
-        <PrivacyToggle isPrivate={aiModels.provider.type === 'ollama'} onToggle={() => setIsPrivate(aiModels.provider.type === 'ollama')} />
-      </div>
-      <ChatWindow messages={messages} />
-      <ChatInput onSendMessage={handleSendMessage} disabled={isProcessing} />
+        <header className="sticky top-0 w-full z-20 bg-white shadow p-4 flex justify-end">
+          <PrivacyToggle isPrivate={isPrivate} onToggle={setIsPrivate} />
+        </header>
+        <main className="flex-1 overflow-y-auto">
+          <ChatWindow messages={messages} />
+        </main>
+        <footer className="sticky bottom-0 w-full z-20 bg-white shadow p-4">
+          <ChatInput onSendMessage={handleSendMessage} disabled={isProcessing} />
+        </footer>
     </div>
   );
 }

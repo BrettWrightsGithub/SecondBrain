@@ -31,12 +31,10 @@ export default function RootLayout({
         >
           <div className="min-h-screen bg-background">
             <Header />
-            <div className="flex">
-              <NavSidebar />
-              <main className="flex-1 pt-16">
-                {children}
-              </main>
-            </div>
+            <NavSidebar />
+            <main className="pl-[72px] md:pl-16 pt-16">
+              {children}
+            </main>
             <Toaster />
           </div>
         </ThemeProvider>
