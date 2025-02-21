@@ -1,31 +1,65 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
+const express_1 = __importDefault(require("express"));
 const ollama_service_1 = require("../services/ollama.service");
-const router = (0, express_1.Router)();
-const ollamaService = ollama_service_1.OllamaService.getInstance();
-router.post('/generate', async (req, res) => {
-    try {
-        const { prompt } = req.body;
-        if (!prompt) {
-            return res.status(400).json({ error: 'Prompt is required' });
-        }
-        const response = await ollamaService.generateResponse(prompt);
-        res.json({ response });
-    }
-    catch (error) {
-        console.error('Error in generate endpoint:', error);
-        res.status(500).json({ error: 'Failed to generate response' });
-    }
+const constants_1 = require("../config/constants");
+const router = express_1.default.Router();
+const ollamaService = new ollama_service_1.OllamaService();
+router.get('/health', async (_req, res) => {
+    const isHealthy = await ollamaService.checkHealth();
+    res.json({ healthy: isHealthy });
 });
-router.get('/models', async (req, res) => {
+router.get('/models', async (_req, res) => {
     try {
         const models = await ollamaService.listModels();
         res.json({ models });
     }
     catch (error) {
-        console.error('Error in models endpoint:', error);
         res.status(500).json({ error: 'Failed to list models' });
+    }
+});
+router.get('/local-models', async (req, res) => {
+    try {
+        const response = await ollamaService.fetchLocalModels();
+        const models = response.data.models.map((model) => ({
+            name: model.name,
+            size: model.size,
+            modifiedAt: model.modified_at,
+            details: model.details
+        }));
+        res.json({ models });
+    }
+    catch (error) {
+        console.error('Error fetching local Ollama models:', error);
+        res.status(500).json({ error: 'Failed to fetch local Ollama models' });
+    }
+});
+router.get('/tags', async (req, res) => {
+    try {
+        const response = await fetch(`${constants_1.OLLAMA_BASE_URL}/api/tags`);
+        if (!response.ok) {
+            throw new Error(`Ollama API error: ${response.status}`);
+        }
+        const data = await response.json();
+        res.json(data);
+    }
+    catch (error) {
+        console.error('Error fetching Ollama tags:', error);
+        res.status(500).json({ error: 'Failed to fetch Ollama tags' });
+    }
+});
+router.post('/generate', async (req, res) => {
+    const { prompt } = req.body;
+    try {
+        const response = await ollamaService.generateResponse(prompt);
+        res.json({ response });
+    }
+    catch (error) {
+        console.error('Error generating response:', error);
+        res.status(500).json({ error: 'Failed to generate response' });
     }
 });
 router.get('/settings', async (req, res) => {
@@ -47,16 +81,6 @@ router.post('/settings', async (req, res) => {
     catch (error) {
         console.error('Error in settings endpoint:', error);
         res.status(500).json({ error: 'Failed to update settings' });
-    }
-});
-router.get('/health', async (req, res) => {
-    try {
-        const isHealthy = await ollamaService.checkHealth();
-        res.json({ status: isHealthy ? 'healthy' : 'unhealthy' });
-    }
-    catch (error) {
-        console.error('Error in health endpoint:', error);
-        res.status(500).json({ error: 'Failed to check health' });
     }
 });
 exports.default = router;

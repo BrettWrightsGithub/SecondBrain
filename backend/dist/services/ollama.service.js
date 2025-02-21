@@ -5,53 +5,28 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OllamaService = void 0;
 const axios_1 = __importDefault(require("axios"));
+const error_1 = require("../middleware/error");
+const constants_1 = require("../config/constants");
 class OllamaService {
-    constructor(baseUrl = 'http://127.0.0.1:11434', model = 'llama2') {
+    constructor(baseUrl = constants_1.OLLAMA_BASE_URL, model = 'llama2') {
         this.baseUrl = baseUrl;
-        this.model = model;
-        if (!this.isValidUrl(this.baseUrl)) {
-            throw new Error('Invalid base URL provided');
-        }
-    }
-    static getInstance(baseUrl, model) {
-        if (!OllamaService.instance) {
-            OllamaService.instance = new OllamaService(baseUrl || 'http://127.0.0.1:11434', model || 'llama2');
-        }
-        return OllamaService.instance;
-    }
-    isValidUrl(urlString) {
-        try {
-            new URL(urlString);
-            return true;
-        }
-        catch (e) {
-            return false;
-        }
-    }
-    setModel(model) {
         this.model = model;
     }
     getSettings() {
         return {
-            selectedModel: this.model,
-            baseUrl: this.baseUrl
+            baseUrl: this.baseUrl,
+            selectedModel: this.model
         };
     }
     setSettings(settings) {
-        if (!this.isValidUrl(settings.baseUrl)) {
-            throw new Error('Invalid base URL provided');
-        }
         this.baseUrl = settings.baseUrl;
         this.model = settings.selectedModel;
     }
     async generateResponse(prompt) {
-        if (!prompt || prompt.trim().length === 0) {
-            throw new Error('Prompt cannot be empty');
-        }
         try {
             const response = await axios_1.default.post(`${this.baseUrl}/api/generate`, {
                 model: this.model,
-                prompt: prompt,
+                prompt,
                 stream: false
             });
             if (!response.data || !response.data.response) {
@@ -61,11 +36,22 @@ class OllamaService {
         }
         catch (error) {
             if (error instanceof Error) {
-                console.error('Error generating response from Ollama:', error);
-                throw error;
+                if (error.message === 'Invalid response format from Ollama') {
+                    throw error;
+                }
+                throw new Error('Failed to generate response from Ollama');
             }
-            console.error('Error generating response from Ollama:', error);
             throw new Error('Failed to generate response from Ollama');
+        }
+    }
+    async fetchLocalModels() {
+        try {
+            const response = await axios_1.default.get(`${this.baseUrl}/api/tags`);
+            return response;
+        }
+        catch (error) {
+            console.error('Error fetching local models:', error);
+            throw new error_1.AppError(500, 'Failed to fetch local models');
         }
     }
     async listModels() {
@@ -78,20 +64,20 @@ class OllamaService {
         }
         catch (error) {
             if (error instanceof Error) {
-                console.error('Error listing Ollama models:', error);
-                throw error;
+                if (error.message === 'Invalid response format from Ollama') {
+                    throw error;
+                }
+                throw new Error('Failed to list Ollama models');
             }
-            console.error('Error listing Ollama models:', error);
             throw new Error('Failed to list Ollama models');
         }
     }
     async checkHealth() {
         try {
-            const response = await axios_1.default.get(`${this.baseUrl}/api/tags`);
+            const response = await axios_1.default.get(this.baseUrl);
             return response.status === 200;
         }
         catch (error) {
-            console.error('Error checking Ollama health:', error);
             return false;
         }
     }

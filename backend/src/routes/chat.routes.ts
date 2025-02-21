@@ -95,9 +95,8 @@ router.post('/stream', async (req: Request, res: Response) => {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to generate chat response' });
+      res.status(500).json({ error: 'An error occurred while generating chat response' });
     }
-    res.end();
   }
 });
 
@@ -141,9 +140,8 @@ router.post('/', async (req: Request, res: Response) => {
     if (error instanceof AppError) {
       res.status(error.statusCode).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Failed to generate chat response' });
+      res.status(500).json({ error: 'An error occurred while generating chat response' });
     }
-    res.end();
   }
 });
 

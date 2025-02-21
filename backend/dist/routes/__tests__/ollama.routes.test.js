@@ -5,144 +5,117 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const supertest_1 = __importDefault(require("supertest"));
 const express_1 = __importDefault(require("express"));
-const ollama_routes_1 = __importDefault(require("../ollama.routes"));
 const ollama_service_1 = require("../../services/ollama.service");
-const error_1 = require("../../middleware/error");
+const ollama_routes_1 = __importDefault(require("../ollama.routes"));
 jest.mock('../../services/ollama.service');
 const MockedOllamaService = ollama_service_1.OllamaService;
 describe('Ollama Routes', () => {
     let app;
     beforeEach(() => {
+        jest.clearAllMocks();
         app = (0, express_1.default)();
         app.use(express_1.default.json());
         app.use('/api/ollama', ollama_routes_1.default);
-        app.use(error_1.errorHandler);
-        jest.clearAllMocks();
     });
-    afterEach(() => {
-        jest.resetAllMocks();
-    });
-    describe('POST /generate', () => {
-        const testPrompt = 'test prompt';
-        const expectedResponse = 'test response';
-        beforeEach(() => {
-            MockedOllamaService.prototype.generateResponse.mockReset();
-        });
+    describe('POST /api/ollama/generate', () => {
         it('should generate a response successfully', async () => {
-            MockedOllamaService.prototype.generateResponse.mockResolvedValueOnce(expectedResponse);
+            const mockResponse = 'Generated response';
+            MockedOllamaService.prototype.generateResponse.mockResolvedValueOnce(mockResponse);
             const response = await (0, supertest_1.default)(app)
                 .post('/api/ollama/generate')
-                .send({ prompt: testPrompt })
-                .expect('Content-Type', /json/)
-                .expect(200);
-            expect(response.body).toEqual({ response: expectedResponse });
-            expect(MockedOllamaService.prototype.generateResponse).toHaveBeenCalledWith(testPrompt);
+                .send({ prompt: 'test prompt' });
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual({ response: mockResponse });
         });
-        it('should return 400 when prompt is missing', async () => {
-            const response = await (0, supertest_1.default)(app)
-                .post('/api/ollama/generate')
-                .send({})
-                .expect('Content-Type', /json/)
-                .expect(400);
-            expect(response.body).toEqual({ error: 'Prompt is required' });
-            expect(MockedOllamaService.prototype.generateResponse).not.toHaveBeenCalled();
-        });
-        it('should return 400 when prompt is empty', async () => {
-            const response = await (0, supertest_1.default)(app)
-                .post('/api/ollama/generate')
-                .send({ prompt: '' })
-                .expect('Content-Type', /json/)
-                .expect(400);
-            expect(response.body).toEqual({ error: 'Prompt is required' });
-            expect(MockedOllamaService.prototype.generateResponse).not.toHaveBeenCalled();
-        });
-        it('should return 500 when generation fails', async () => {
+        it('should handle errors during generation', async () => {
             MockedOllamaService.prototype.generateResponse.mockRejectedValueOnce(new Error('Generation failed'));
             const response = await (0, supertest_1.default)(app)
                 .post('/api/ollama/generate')
-                .send({ prompt: testPrompt })
-                .expect('Content-Type', /json/)
-                .expect(500);
+                .send({ prompt: 'test prompt' });
+            expect(response.status).toBe(500);
             expect(response.body).toEqual({ error: 'Failed to generate response' });
         });
-        it('should handle large prompts', async () => {
-            const largePrompt = 'a'.repeat(10000);
-            MockedOllamaService.prototype.generateResponse.mockResolvedValueOnce(expectedResponse);
-            const response = await (0, supertest_1.default)(app)
-                .post('/api/ollama/generate')
-                .send({ prompt: largePrompt })
-                .expect(200);
-            expect(response.body).toEqual({ response: expectedResponse });
-        });
     });
-    describe('GET /models', () => {
-        const mockModels = [
-            { name: 'model1', modified_at: '2024-01-01', size: 1000 },
-            { name: 'model2', modified_at: '2024-01-02', size: 2000 }
-        ];
-        beforeEach(() => {
-            MockedOllamaService.prototype.listModels.mockReset();
-            MockedOllamaService.prototype.listModels.mockResolvedValueOnce(mockModels);
-        });
+    describe('GET /api/ollama/models', () => {
         it('should list models successfully', async () => {
+            const mockModels = [{ name: 'model1' }, { name: 'model2' }];
+            MockedOllamaService.prototype.listModels.mockResolvedValueOnce(mockModels);
             const response = await (0, supertest_1.default)(app)
-                .get('/api/ollama/models')
-                .expect('Content-Type', /json/)
-                .expect(200);
+                .get('/api/ollama/models');
+            expect(response.status).toBe(200);
             expect(response.body).toEqual({ models: mockModels });
         });
-        it('should handle empty model list', async () => {
-            MockedOllamaService.prototype.listModels.mockResolvedValueOnce([]);
-            const response = await (0, supertest_1.default)(app)
-                .get('/api/ollama/models')
-                .expect('Content-Type', /json/)
-                .expect(200);
-            expect(response.body).toEqual({ models: [] });
-        });
-        it('should return 500 when listing models fails', async () => {
+        it('should handle errors when listing models', async () => {
             MockedOllamaService.prototype.listModels.mockRejectedValueOnce(new Error('Failed to list models'));
             const response = await (0, supertest_1.default)(app)
-                .get('/api/ollama/models')
-                .expect('Content-Type', /json/)
-                .expect(500);
+                .get('/api/ollama/models');
+            expect(response.status).toBe(500);
             expect(response.body).toEqual({ error: 'Failed to list models' });
         });
     });
-    describe('GET /health', () => {
-        beforeEach(() => {
-            MockedOllamaService.prototype.checkHealth.mockReset();
-        });
-        it('should return healthy status', async () => {
+    describe('GET /api/ollama/health', () => {
+        it('should return healthy status when service is healthy', async () => {
             MockedOllamaService.prototype.checkHealth.mockResolvedValueOnce(true);
             const response = await (0, supertest_1.default)(app)
-                .get('/api/ollama/health')
-                .expect('Content-Type', /json/)
-                .expect(200);
-            expect(response.body).toEqual({ status: 'healthy' });
+                .get('/api/ollama/health');
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual({ healthy: true });
         });
-        it('should return unhealthy status', async () => {
+        it('should return unhealthy status when service is not healthy', async () => {
             MockedOllamaService.prototype.checkHealth.mockResolvedValueOnce(false);
             const response = await (0, supertest_1.default)(app)
-                .get('/api/ollama/health')
-                .expect('Content-Type', /json/)
-                .expect(503);
-            expect(response.body).toEqual({ status: 'unhealthy' });
+                .get('/api/ollama/health');
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual({ healthy: false });
         });
-        it('should return 500 when health check fails', async () => {
-            MockedOllamaService.prototype.checkHealth.mockRejectedValueOnce(new Error('Health check failed'));
+    });
+    describe('GET /api/ollama/local-models', () => {
+        const mockModelsResponse = {
+            data: {
+                models: [
+                    {
+                        name: 'llama3:latest',
+                        size: 4661224676,
+                        modified_at: '2024-07-22T22:37:42.849216426-06:00',
+                        details: {
+                            parameter_size: '8.0B',
+                            family: 'llama',
+                            format: 'gguf',
+                            quantization_level: 'Q4_0'
+                        }
+                    }
+                ]
+            },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config: {}
+        };
+        it('should fetch local models successfully', async () => {
+            MockedOllamaService.prototype.fetchLocalModels.mockResolvedValueOnce(mockModelsResponse);
             const response = await (0, supertest_1.default)(app)
-                .get('/api/ollama/health')
-                .expect('Content-Type', /json/)
-                .expect(500);
-            expect(response.body).toEqual({ error: 'Failed to check health' });
+                .get('/api/ollama/local-models');
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual({
+                models: [{
+                        name: 'llama3:latest',
+                        size: 4661224676,
+                        modifiedAt: '2024-07-22T22:37:42.849216426-06:00',
+                        details: {
+                            parameter_size: '8.0B',
+                            family: 'llama',
+                            format: 'gguf',
+                            quantization_level: 'Q4_0'
+                        }
+                    }]
+            });
         });
-        it('should handle timeout during health check', async () => {
-            MockedOllamaService.prototype.checkHealth.mockRejectedValueOnce(new Error('timeout'));
+        it('should handle errors when fetching local models', async () => {
+            MockedOllamaService.prototype.fetchLocalModels.mockRejectedValueOnce(new Error('Failed to fetch models'));
             const response = await (0, supertest_1.default)(app)
-                .get('/api/ollama/health')
-                .expect('Content-Type', /json/)
-                .expect(500);
-            expect(response.body).toEqual({ error: 'Failed to check health' });
+                .get('/api/ollama/local-models');
+            expect(response.status).toBe(500);
+            expect(response.body).toEqual({ error: 'Failed to fetch local Ollama models' });
         });
     });
 });

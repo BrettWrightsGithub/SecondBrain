@@ -1,69 +1,42 @@
 import axios from 'axios';
-import { OllamaModel, OllamaModelResponse, OllamaSettings } from '../types/ollama';
+import { AppError } from '../middleware/error';
+import { OLLAMA_BASE_URL } from '../config/constants';
+
+export interface OllamaModel {
+    name: string;
+}
+
+export interface OllamaSettings {
+    baseUrl: string;
+    selectedModel: string;
+}
 
 export class OllamaService {
     private baseUrl: string;
     private model: string;
-    private static instance: OllamaService;
 
-    constructor(
-        baseUrl: string = 'http://127.0.0.1:11434',
-        model: string = 'llama2'
-    ) {
+    constructor(baseUrl: string = OLLAMA_BASE_URL, model: string = 'llama2') {
         this.baseUrl = baseUrl;
         this.model = model;
-        if (!this.isValidUrl(this.baseUrl)) {
-            throw new Error('Invalid base URL provided');
-        }
     }
 
-    public static getInstance(baseUrl?: string, model?: string): OllamaService {
-        if (!OllamaService.instance) {
-            OllamaService.instance = new OllamaService(
-                baseUrl || 'http://127.0.0.1:11434',
-                model || 'llama2'
-            );
-        }
-        return OllamaService.instance;
-    }
-
-    private isValidUrl(urlString: string): boolean {
-        try {
-            new URL(urlString);
-            return true;
-        } catch (e) {
-            return false;
-        }
-    }
-
-    public setModel(model: string): void {
-        this.model = model;
-    }
-
-    public getSettings(): OllamaSettings {
+    getSettings(): OllamaSettings {
         return {
-            selectedModel: this.model,
-            baseUrl: this.baseUrl
+            baseUrl: this.baseUrl,
+            selectedModel: this.model
         };
     }
 
-    public setSettings(settings: OllamaSettings): void {
-        if (!this.isValidUrl(settings.baseUrl)) {
-            throw new Error('Invalid base URL provided');
-        }
+    setSettings(settings: OllamaSettings): void {
         this.baseUrl = settings.baseUrl;
         this.model = settings.selectedModel;
     }
 
     async generateResponse(prompt: string): Promise<string> {
-        if (!prompt || prompt.trim().length === 0) {
-            throw new Error('Prompt cannot be empty');
-        }
-
         try {
             const response = await axios.post(`${this.baseUrl}/api/generate`, {
                 model: this.model,
-                prompt: prompt,
+                prompt,
                 stream: false
             });
 
@@ -74,37 +47,50 @@ export class OllamaService {
             return response.data.response;
         } catch (error) {
             if (error instanceof Error) {
-                console.error('Error generating response from Ollama:', error);
-                throw error;
+                if (error.message === 'Invalid response format from Ollama') {
+                    throw error;
+                }
+                throw new Error('Failed to generate response from Ollama');
             }
-            console.error('Error generating response from Ollama:', error);
             throw new Error('Failed to generate response from Ollama');
+        }
+    }
+
+    async fetchLocalModels() {
+        try {
+            const response = await axios.get(`${this.baseUrl}/api/tags`);
+            return response;
+        } catch (error) {
+            console.error('Error fetching local models:', error);
+            throw new AppError(500, 'Failed to fetch local models');
         }
     }
 
     async listModels(): Promise<OllamaModel[]> {
         try {
-            const response = await axios.get<OllamaModelResponse>(`${this.baseUrl}/api/tags`);
+            const response = await axios.get(`${this.baseUrl}/api/tags`);
+
             if (!response.data || !response.data.models) {
                 throw new Error('Invalid response format from Ollama');
             }
+
             return response.data.models;
         } catch (error) {
             if (error instanceof Error) {
-                console.error('Error listing Ollama models:', error);
-                throw error;
+                if (error.message === 'Invalid response format from Ollama') {
+                    throw error;
+                }
+                throw new Error('Failed to list Ollama models');
             }
-            console.error('Error listing Ollama models:', error);
             throw new Error('Failed to list Ollama models');
         }
     }
 
     async checkHealth(): Promise<boolean> {
         try {
-            const response = await axios.get(`${this.baseUrl}/api/tags`);
+            const response = await axios.get(this.baseUrl);
             return response.status === 200;
         } catch (error) {
-            console.error('Error checking Ollama health:', error);
             return false;
         }
     }

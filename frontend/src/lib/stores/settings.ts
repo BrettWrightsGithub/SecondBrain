@@ -2,12 +2,21 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type OpenAIChatModel = 
-  | 'gpt-4-turbo-preview'  // Latest GPT-4 Turbo
-  | 'gpt-4-0125-preview'   // Specific version of GPT-4 Turbo
-  | 'gpt-4-1106-preview'   // Previous GPT-4 Turbo
-  | 'gpt-4'                // Base GPT-4
-  | 'gpt-3.5-turbo-0125'   // Latest GPT-3.5 Turbo
-  | 'gpt-3.5-turbo'        // GPT-3.5 Turbo
+  | 'gpt-4o'                        // Latest GPT-4 Optimized
+  | 'gpt-4o-2024-08-06'            // Specific version of GPT-4 Optimized
+  | 'chatgpt-4o-latest'            // Latest used in ChatGPT
+  | 'gpt-4o-mini'                  // Mini version of GPT-4 Optimized
+  | 'gpt-4o-mini-2024-07-18'       // Specific version of GPT-4 Mini
+  | 'o1'                           // Latest O1 model
+  | 'o1-2024-12-17'                // Specific version of O1
+  | 'o1-mini'                      // Mini version of O1
+  | 'o1-mini-2024-09-12'           // Specific version of O1 Mini
+  | 'o3-mini'                      // Latest O3 Mini
+  | 'o3-mini-2025-01-31'           // Specific version of O3 Mini
+  | 'o1-preview'                   // Latest O1 Preview
+  | 'o1-preview-2024-09-12'        // Specific version of O1 Preview
+  | 'gpt-4o-realtime-preview'      // Latest Realtime Preview
+  | 'gpt-4o-realtime-preview-2024-12-17' // Specific version of Realtime Preview
 
 export type AnthropicChatModel =
   | 'claude-3-5-sonnet'    // Latest Claude model
@@ -24,6 +33,7 @@ export type OllamaChatModel =
   | 'phi'                  // Microsoft Phi-2
   | 'vicuna'               // Vicuna
   | 'orca-mini'            // Orca Mini
+  | 'llama3.2:latest'      // Latest Llama 3.2
 
 export type ChatModelType = OpenAIChatModel | AnthropicChatModel | OllamaChatModel;
 
@@ -34,6 +44,8 @@ export type EmbeddingModelType =
   | 'llama2-embedding'          // Local Llama 2 embeddings
   | 'nomic-embed-text'          // Nomic AI embeddings
 
+export const OLLAMA_DEFAULT_URL = 'http://127.0.0.1:11434';
+
 export interface ModelProvider {
   type: 'openai' | 'anthropic' | 'ollama';
   baseUrl?: string;          // For Ollama, default is http://localhost:11434
@@ -42,6 +54,8 @@ export interface ModelProvider {
 
 export interface AIModelSettings {
   chatModel: ChatModelType;
+  ollamaChatModel: OllamaChatModel;  // Model for Ollama
+  openaiChatModel: OpenAIChatModel;  // Model for OpenAI
   embeddingModel: EmbeddingModelType;
   provider: ModelProvider;
   temperature: number;
@@ -56,13 +70,16 @@ interface SettingsState {
 }
 
 const defaultAISettings: AIModelSettings = {
-  chatModel: 'gpt-4-turbo-preview',
+  chatModel: 'llama3.2:latest',
+  ollamaChatModel: 'llama3.2:latest',  // Default Ollama model
+  openaiChatModel: 'gpt-4o',           // Default OpenAI model
   embeddingModel: 'text-embedding-3-large',
   provider: {
-    type: 'openai',
+    type: 'ollama',
+    baseUrl: OLLAMA_DEFAULT_URL,
   },
   temperature: 0.7,
-  maxTokens: 4096,
+  maxTokens: 1000,
   streamResponses: true,
   useContextWindow: true,
 };
@@ -73,14 +90,7 @@ export const useSettings = create<SettingsState>()(
       aiModels: defaultAISettings,
       updateAIModels: (settings) =>
         set((state) => ({
-          aiModels: {
-            ...state.aiModels,
-            ...settings,
-            // Merge provider settings if provided
-            provider: settings.provider
-              ? { ...state.aiModels.provider, ...settings.provider }
-              : state.aiModels.provider,
-          },
+          aiModels: { ...state.aiModels, ...settings },
         })),
     }),
     {

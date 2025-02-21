@@ -27,6 +27,7 @@ export interface OllamaStatus {
 
 export class OllamaService {
   private baseUrl: string;
+  private abortController: AbortController | null = null;
 
   constructor(baseUrl: string = 'http://localhost:11434') {
     this.baseUrl = baseUrl;
@@ -37,19 +38,26 @@ export class OllamaService {
   }
 
   private async fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 5000): Promise<Response> {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
+    // Cancel any existing requests
+    if (this.abortController) {
+      this.abortController.abort();
+    }
+    
+    this.abortController = new AbortController();
+    const timeoutId = setTimeout(() => this.abortController?.abort(), timeout);
 
     try {
       const response = await fetch(url, {
         ...options,
-        signal: controller.signal,
+        signal: this.abortController.signal,
       });
-      clearTimeout(id);
+      clearTimeout(timeoutId);
       return response;
     } catch (error) {
-      clearTimeout(id);
+      clearTimeout(timeoutId);
       throw error;
+    } finally {
+      this.abortController = null;
     }
   }
 
@@ -64,7 +72,7 @@ export class OllamaService {
 
   async listModels(): Promise<OllamaModel[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/tags`);
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/api/tags`, {}, 10000);
       if (!response.ok) {
         throw new Error('Failed to fetch models');
       }
@@ -95,24 +103,24 @@ export class OllamaService {
         throw new Error('No response body');
       }
 
+      const decoder = new TextDecoder();
+      let buffer = '';
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        // Convert the chunk to text and parse JSON
-        const chunk = new TextDecoder().decode(value);
-        const lines = chunk.split('\n').filter(line => line.trim());
-        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
         for (const line of lines) {
+          if (!line.trim()) continue;
           try {
             const status: OllamaStatus = JSON.parse(line);
             onProgress?.(status);
-            
-            if (status.status === 'success') {
-              return;
-            }
           } catch (e) {
-            console.warn('Failed to parse status:', e);
+            console.error('Error parsing status:', e);
           }
         }
       }
@@ -124,19 +132,34 @@ export class OllamaService {
 
   async deleteModel(modelName: string): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/delete`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await this.fetchWithTimeout(
+        `${this.baseUrl}/api/delete`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name: modelName }),
         },
-        body: JSON.stringify({ model: modelName }),
-      });
+        10000
+      );
 
       if (!response.ok) {
         throw new Error('Failed to delete model');
       }
     } catch (error) {
       console.error('Error deleting model:', error);
+      throw error;
+    }
+  }
+
+  async getTags(): Promise<string[]> {
+    try {
+      const response = await fetch('/api/ollama/tags');
+      const data = await response.json();
+      return data.models || [];
+    } catch (error) {
+      console.error('Error getting Ollama tags:', error);
       throw error;
     }
   }
