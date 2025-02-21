@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { errorHandler } from './middleware/error';
 import ollamaRoutes from './routes/ollama.routes';
 import chatRoutes from './routes/chat.routes';
+import contactsRoutes from './routes/contacts.routes';
 import path from 'path';
 
 // Load environment variables
@@ -30,6 +31,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/ollama', ollamaRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/contacts', contactsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -39,6 +41,10 @@ app.get('/api/health', (req, res) => {
 // Error handling
 app.use(errorHandler);
 
-app.listen(port, host, () => {
-  console.log(`Server running at http://${host}:${port}`);
-});
+if (require.main === module) {
+  app.listen(port, host, () => {
+    console.log(`Server running at http://${host}:${port}`);
+  });
+}
+
+export default app;

@@ -1,4 +1,6 @@
 {
-  "/settings/integrations/page": "app/settings/integrations/page.js",
+  "/api/chat/stream/route": "app/api/chat/stream/route.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/chat/page": "app/chat/page.js",
   "/settings/ai-models/page": "app/settings/ai-models/page.js"
 }

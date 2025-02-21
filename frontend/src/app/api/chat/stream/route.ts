@@ -3,8 +3,10 @@ import { NextRequest } from 'next/server';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    // When running in the API route (server-side), we should use the environment variable
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
     
-    const backendResponse = await fetch('http://localhost:3001/api/chat/stream', {
+    const backendResponse = await fetch(`${backendUrl}/api/chat/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -13,7 +15,8 @@ export async function POST(req: NextRequest) {
     });
 
     if (!backendResponse.ok) {
-      throw new Error('Backend request failed');
+      const errorText = await backendResponse.text();
+      throw new Error(`Backend request failed: ${errorText}`);
     }
 
     // Create a TransformStream to handle the streaming response

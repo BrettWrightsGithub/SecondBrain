@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useSettings } from "@/lib/stores/settings";
 import { OllamaService, type OllamaModel } from "@/lib/services/ollama";
-import { Loader2, CheckCircle2, XCircle, Download, Trash } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Download, Trash, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { chatModels } from "./models";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -23,6 +23,7 @@ export default function OllamaSetup() {
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [installedModels, setInstalledModels] = useState<OllamaModel[]>([]);
   const [modelStatus, setModelStatus] = useState<ModelStatus>({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
 
   const ollamaService = new OllamaService(aiModels.provider.baseUrl);
@@ -45,6 +46,7 @@ export default function OllamaSetup() {
   };
 
   const refreshModels = async () => {
+    setIsRefreshing(true);
     try {
       const models = await ollamaService.listModels();
       setInstalledModels(models);
@@ -55,6 +57,11 @@ export default function OllamaSetup() {
         newStatus[model.name] = { status: 'ready' };
       });
       setModelStatus(newStatus);
+      
+      toast({
+        title: "Success",
+        description: "Successfully refreshed model list",
+      });
     } catch (error) {
       console.error('Failed to list models:', error);
       toast({
@@ -62,7 +69,13 @@ export default function OllamaSetup() {
         description: "Failed to list installed models",
         variant: "destructive",
       });
+    } finally {
+      setIsRefreshing(false);
     }
+  };
+
+  const handleRefresh = () => {
+    checkConnection();
   };
 
   const installModel = async (modelName: string) => {
@@ -113,13 +126,13 @@ export default function OllamaSetup() {
       await refreshModels();
       toast({
         title: "Success",
-        description: `Successfully removed ${modelName}`,
+        description: `Successfully deleted ${modelName}`,
       });
     } catch (error) {
       console.error('Failed to delete model:', error);
       toast({
         title: "Error",
-        description: `Failed to remove ${modelName}`,
+        description: `Failed to delete ${modelName}`,
         variant: "destructive",
       });
     }
@@ -141,32 +154,27 @@ export default function OllamaSetup() {
 
   return (
     <ErrorBoundary>
-      <Card className="p-6">
+      <Card className="p-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Ollama Status</h3>
           <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold">Ollama Status</h3>
             {isConnected === null ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : isConnected ? (
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <CheckCircle2 className="w-4 h-4 text-green-500" />
             ) : (
-              <XCircle className="h-4 w-4 text-red-500" />
+              <XCircle className="w-4 h-4 text-red-500" />
             )}
-            <span className="text-sm">
-              {isConnected === null
-                ? "Checking connection..."
-                : isConnected
-                ? "Connected"
-                : "Not connected"}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={checkConnection}
-            >
-              Refresh
-            </Button>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
 
         <div className="space-y-4">
@@ -178,38 +186,38 @@ export default function OllamaSetup() {
               return (
                 <div
                   key={model.value}
-                  className="flex items-center justify-between p-4 rounded-lg border"
+                  className="flex items-center justify-between p-4 border rounded-lg"
                 >
-                  <div>
+                  <div className="flex-1">
                     <h4 className="font-medium">{model.label}</h4>
-                    <p className="text-sm text-neutral-500">{model.description}</p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {status?.status === 'downloading' && (
-                      <div className="w-32">
-                        <Progress value={status.progress} className="w-full" />
-                      </div>
+                    <p className="text-sm text-muted-foreground">
+                      {model.description}
+                    </p>
+                    {status?.status === 'downloading' && status.progress && (
+                      <Progress value={status.progress} className="mt-2" />
                     )}
-
+                  </div>
+                  <div className="ml-4">
                     {isInstalled ? (
                       <Button
-                        variant="outline"
+                        variant="destructive"
                         size="sm"
                         onClick={() => deleteModel(model.value)}
                       >
-                        <Trash className="h-4 w-4 mr-2" />
-                        Remove
+                        <Trash className="w-4 h-4" />
                       </Button>
                     ) : (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => installModel(model.value)}
-                        disabled={!isConnected || status?.status === 'downloading'}
+                        disabled={status?.status === 'downloading'}
                       >
-                        <Download className="h-4 w-4 mr-2" />
-                        Install
+                        {status?.status === 'downloading' ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
                       </Button>
                     )}
                   </div>

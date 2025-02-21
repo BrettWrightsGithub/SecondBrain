@@ -6,11 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { useSettings } from "@/lib/stores/settings";
+import { useSettings, OLLAMA_DEFAULT_URL } from "@/lib/stores/settings";
 import type { ChatModelType, EmbeddingModelType, ModelProvider } from "@/lib/stores/settings";
 import OllamaSetup from "./ollama-setup";
+import LocalModels from "./local-models";
 import { chatModels, embeddingModels } from "./models";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { useOllamaModels } from "@/hooks/use-ollama-models";
 
 const providers = [
   {
@@ -32,6 +34,20 @@ const providers = [
 
 export default function AIModelsPage() {
   const { aiModels, updateAIModels } = useSettings();
+  const { models: ollamaModels } = useOllamaModels();
+
+  // Convert Ollama models to the expected format
+  const availableOllamaModels = ollamaModels.map(model => ({
+    value: model.name,
+    label: model.name,
+    description: `${model.details?.family || 'Unknown family'} - ${model.details?.parameter_size || 'Unknown size'}`
+  }));
+
+  // Combine predefined models with available Ollama models
+  const availableModels = {
+    ...chatModels,
+    ollama: aiModels.provider.type === 'ollama' ? availableOllamaModels : chatModels.ollama
+  };
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
@@ -54,7 +70,7 @@ export default function AIModelsPage() {
                   value={aiModels.provider.type}
                   onValueChange={(value: ModelProvider['type']) => {
                     // When changing provider, also update to a default model for that provider
-                    const defaultModel = chatModels[value][0].value as ChatModelType;
+                    const defaultModel = availableModels[value][0].value as ChatModelType;
                     updateAIModels({ 
                       provider: { type: value },
                       chatModel: defaultModel,
@@ -79,17 +95,28 @@ export default function AIModelsPage() {
 
               {/* Provider-specific settings */}
               {aiModels.provider.type === 'ollama' && (
-                <div className="grid gap-2">
-                  <Label>Ollama Base URL</Label>
-                  <Input
-                    placeholder="http://localhost:11434"
-                    value={aiModels.provider.baseUrl || ''}
-                    onChange={(e) => updateAIModels({ 
-                      provider: { ...aiModels.provider, baseUrl: e.target.value } 
-                    })}
-                  />
-                  <p className="text-sm text-neutral-500">URL where Ollama is running</p>
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="ollamaUrl">Ollama URL</Label>
+                    <Input
+                      id="ollamaUrl"
+                      placeholder={OLLAMA_DEFAULT_URL}
+                      value={aiModels.provider.baseUrl || ''}
+                      onChange={(e) =>
+                        updateAIModels({
+                          provider: {
+                            ...aiModels.provider,
+                            baseUrl: e.target.value || OLLAMA_DEFAULT_URL,
+                          },
+                        })
+                      }
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      The URL where your Ollama instance is running. Default: {OLLAMA_DEFAULT_URL}
+                    </p>
+                  </div>
+                  <LocalModels />
+                </>
               )}
 
               {(aiModels.provider.type === 'openai' || aiModels.provider.type === 'anthropic') && (
@@ -100,7 +127,10 @@ export default function AIModelsPage() {
                     placeholder="Enter your API key"
                     value={aiModels.provider.apiKey || ''}
                     onChange={(e) => updateAIModels({ 
-                      provider: { ...aiModels.provider, apiKey: e.target.value } 
+                      provider: { 
+                        ...aiModels.provider,
+                        apiKey: e.target.value 
+                      } 
                     })}
                   />
                   <p className="text-sm text-neutral-500">
@@ -131,7 +161,7 @@ export default function AIModelsPage() {
                     <SelectValue placeholder="Select a model" />
                   </SelectTrigger>
                   <SelectContent>
-                    {chatModels[aiModels.provider.type].map((model) => (
+                    {availableModels[aiModels.provider.type].map((model) => (
                       <SelectItem key={model.value} value={model.value}>
                         <div>
                           <div className="font-medium">{model.label}</div>
@@ -154,7 +184,7 @@ export default function AIModelsPage() {
                     <SelectValue placeholder="Select a model" />
                   </SelectTrigger>
                   <SelectContent>
-                    {embeddingModels.map((model) => (
+                    {(embeddingModels[aiModels.provider.type] || []).map((model: { value: string; label: string; description: string }) => (
                       <SelectItem key={model.value} value={model.value}>
                         <div>
                           <div className="font-medium">{model.label}</div>
@@ -164,7 +194,7 @@ export default function AIModelsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-sm text-neutral-500">Model used for document embeddings</p>
+                <p className="text-sm text-neutral-500">Model used for generating embeddings</p>
               </div>
             </div>
           </Card>

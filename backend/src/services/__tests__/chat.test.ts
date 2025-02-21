@@ -4,6 +4,11 @@ import { ChatOpenAI } from 'langchain/chat_models/openai';
 import { ChatAnthropic } from 'langchain/chat_models/anthropic';
 import { ChatOllama } from 'langchain/chat_models/ollama';
 
+// Mock environment variables
+process.env.OLLAMA_URL = 'http://127.0.0.1:11434';
+process.env.OPENAI_API_KEY = 'test-openai-key';
+process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
+
 jest.mock('langchain/chat_models/openai', () => ({
   ChatOpenAI: jest.fn().mockImplementation((config) => ({
     modelName: 'o3-mini',
@@ -129,7 +134,7 @@ describe('ChatService', () => {
         provider: 'ollama',
         model: 'llama3',
       });
-      expect((service as any).model.baseUrl).toBe('http://localhost:11434');
+      expect((service as any).model.baseUrl).toBe('http://127.0.0.1:11434');
     });
   });
 
