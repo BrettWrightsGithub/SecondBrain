@@ -1,22 +1,22 @@
 
 You are an AI assistant responsible for processing raw documents and extracting meaningful text from them. Below is a document that may contain contact information, notes, or structured details.
 
-> Task:
-> 1. Identify what type of document this is (e.g., vCard, PDF, Email, Image).
-> 2. Extract all readable text while maintaining formatting as much as possible.
-> 3. If the document is a structured format (e.g., vCard, JSON-like format), attempt to preserve its structure.
+Task:
+1. Identify what type of document this is (e.g., vCard, PDF, Email, Image).
+2. Extract all readable text while maintaining formatting as much as possible.
+3. If the document is a structured format (e.g., vCard, JSON-like format), attempt to preserve its structure.
 
-> Expected Output Format:
-> {
->   "document_type": "vCard",
->   "raw_text": "<<EXTRACTED TEXT>>"
-> }
+Expected Output Format:
+{
+  "document_type": "vCard",
+  "raw_text": "<<EXTRACTED TEXT>>"
+}
 
-> If the document is unreadable or empty, return:
-> {
->   "document_type": "Unknown",
->   "raw_text": "N/A"
-> }
+If the document is unreadable or empty, return:
+{
+  "document_type": "Unknown",
+  "raw_text": "N/A"
+}
 
-> Document Input:
-> <<Insert raw document data here>>
+Document Input:
+<<Insert raw document data here>>

@@ -1,0 +1,91 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "fileSelector": "/Users/brettwright/WebApps/SecondBrain/examples/helpside.png",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        220,
+        100
+      ],
+      "id": "8f0c2aaa-a446-4787-8065-9f60b2879655",
+      "name": "imageTest"
+    },
+    {
+      "parameters": {
+        "values": {
+          "binary": [
+            {
+              "name": "data",
+              "value": "={{$json[\"file\"]}}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        400,
+        100
+      ],
+      "id": "setBinaryData",
+      "name": "Set Binary Data",
+      "connections": {
+        "main": [
+          [
+            {
+              "node": "Resize For AI",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "parameters": {
+        "operation": "resize",
+        "dataPropertyName": "={{ $binary }}",
+        "width": 1024,
+        "height": 1024,
+        "resizeOption": "onlyIfLarger",
+        "options": {}
+      },
+      "id": "0a49ad03-aefd-4d94-a941-6dc93e59385f",
+      "name": "Resize For AI",
+      "type": "n8n-nodes-base.editImage",
+      "position": [
+        400,
+        80
+      ],
+      "typeVersion": 1
+    }
+  ],
+  "connections": {
+    "imageTest": {
+      "main": [
+        [
+          {
+            "node": "setBinaryData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "setBinaryData": {
+      "main": [
+        [
+          {
+            "node": "Resize For AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
